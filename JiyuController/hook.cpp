@@ -3,11 +3,18 @@
 #include"hook.h"
 #include<Windows.h>
 #include <TlHelp32.h>
+#include<WinUser.h>
 bool hk[40] = { 0 };
 //极域的Pid
 DWORD Jiyupid = -1;
 bool JiyuRunning = false;
-//
+// 极域状态
+HWND GuangboWindow = NULL;
+bool isGuangbiRunnung = 0;
+HWND HeipingWindow = NULL;
+bool isHeipingRunning = 0;
+// 极域窗口回调
+WNDPROC OldWndProc = NULL;
 //声明指针变量
 fnSetWindowPos pSetWindowPos = NULL;
 fnMoveWindow pMoveWindow = NULL;
@@ -215,14 +222,47 @@ void JiyuMonitor()
 }
 void JiyuStatus()//极域状态监测
 {
-	 = FindWindowW(L"屏幕广播", NULL)
-	if()
-
+	GuangboWindow = FindWindowW(L"屏幕广播", NULL);
+		if (GuangboWindow == NULL)
+		{
+			isGuangbiRunnung = false;
+	}
+		HeipingWindow = FindWindowW(L"屏幕广播", NULL);
+		if (HeipingWindow == NULL)
+		{
+			isHeipingRunning = false;
+		}
+		return;
 }
+
 void hookGuangbo(HWND hwnd)
 {
+	OldWndProc = (WNDPROC)GetWindowLong(hwnd, -4);//保存旧地址
+	SetWindowLong(hwnd, -4, (DWORD)NewWindowProc);
+	SendMessage(hwnd, WM_USER + 1, TRUE, FALSE);
+	SetWindowLong (hwnd,-16,GetWindowLong(hwnd, -16)| WS_OVERLAPPEDWINDOW| WS_SYSMENU);
+
 
 }
+//新的窗口回调函数
+LRESULT CALLBACK NewWindowProc(HWND hwnd,      // handle to window
+	UINT uMsg,      // message identifier
+	WPARAM wParam,  // first message parameter
+	LPARAM lParam   // second message parameter
+)
+{
+	switch (uMsg)
+	{
+		case WM_USER+1:
+			//日志记录
+			break;
+		default:
+			break;
+	}
+		
+	return CallWindowProc((WNDPROC)OldWndProc, hwnd, uMsg, wParam, lParam);
+}
+
 BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx, int cy, UINT uFlags)
 {
 	if (GetCurrentProcessId() == Jiyupid)//如果调用此函数的是极域
