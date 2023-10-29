@@ -15,6 +15,16 @@ HWND HeipingWindow = NULL;
 bool isHeipingRunning = 0;
 // 极域窗口回调
 WNDPROC OldWndProc = NULL;
+//极域窗口默认大小
+struct normalsize
+{
+	int x = 100;
+	int y = 100;
+	int left = 0;
+	int top = 0;
+}NormalSize;
+//CBT钩子句柄
+HHOOK CBT = NULL;
 //声明指针变量
 fnSetWindowPos pSetWindowPos = NULL;
 fnMoveWindow pMoveWindow = NULL;
@@ -183,7 +193,60 @@ void UninstallHook()
 	if (hk[34]) Mhook_Unhook((PVOID*)pSendMessageW);
 	if (hk[35]) Mhook_Unhook((PVOID*)pTerminateProcess);
 	if (hk[36]) Mhook_Unhook((PVOID*)pFilterConnectCommunicationPort);
+
+	//挂CBT钩子以监视窗口的创建
+	CBT = SetWindowsHookEx(WH_CBT, CBTProc, GetModuleHandle(L"JiyuController.dll"), GetCurrentThreadId());
+
 	return;
+}
+//CBT回调函数
+LRESULT CALLBACK CBTProc(int code, WPARAM wParam, LPARAM lParam)
+{
+	switch (code)
+	{
+	case 1://HCBT_MINMAX		窗口即将最小化或最大化。
+		break;
+	case 2://HCBT_QS			系统已从系统消息队列中检索WM_QUEUESYNC消息
+		break;
+	case 3://HCBT_CREATEWND		即将创建一个窗口
+		//监视极域创建窗口在这里
+		CBT_CREATEWND* p1 = NULL;//lParam对应的结构体指针
+		p1 = (CBT_CREATEWND*)lParam;
+		LPCREATESTRUCT* p2 = NULL;//窗口初始化参数结构体指针
+		p2 = (LPCREATESTRUCT*)p1->lpcs;
+		if ((*p2)->lpszName == L"屏幕广播" )
+		{
+			//创建的是极域广播窗口
+			(*p2)->cx = NormalSize.x;
+			(*p2)->cy = NormalSize.y;
+			(*p2)->x = NormalSize.top;
+			(*p2)->y = NormalSize.left;
+			(*p2)->style = WS_OVERLAPPEDWINDOW | WS_SYSMENU;
+			JiyuStatus(15);
+			return 0;
+		}
+		if ((*p2)->lpszName == L"BlockScreen Window")
+		{
+			//创建的是极域黑屏窗口
+		}
+		break;
+	case 4://HCBT_DESTROYWND	一个窗口将被销毁
+		break;
+	case 5://HCBT_ACTIVATE		系统即将激活窗口
+		break;
+	case 6://HCBT_CLICKSKIPPED  系统已从消息队列中删除鼠标信息
+		break;
+	case 7://HCBT_KEYSKIPPED	系统已从消息队列中删除键盘信息
+		break;
+	case 8://HCBT_SYSCOMMAND	即将执行系统命令
+		break;
+	case 9://HCBT_SETFOCUS		窗口即将接收键盘焦点
+		break;
+	case 0://HCBT_MOVESIZE		即将移动窗口或调整其大小
+		break;
+	default:
+		break;
+	}
 }
 int GetJiyuID()
 {
@@ -220,19 +283,20 @@ void JiyuMonitor()
 	Jiyupid = -1;
 	JiyuRunning = false;
 }
-void JiyuStatus()//极域状态监测
+void JiyuStatus(int t)//极域状态监测
 {
+	Sleep(t);
 	GuangboWindow = FindWindowW(L"屏幕广播", NULL);
-		if (GuangboWindow == NULL)
-		{
-			isGuangbiRunnung = false;
+	if (GuangboWindow == NULL)
+	{
+		isGuangbiRunnung = false;
 	}
-		HeipingWindow = FindWindowW(L"屏幕广播", NULL);
-		if (HeipingWindow == NULL)
-		{
-			isHeipingRunning = false;
-		}
-		return;
+	HeipingWindow = FindWindowW(L"屏幕广播", NULL);
+	if (HeipingWindow == NULL)
+	{
+		isHeipingRunning = false;
+	}
+	return;
 }
 
 void hookGuangbo(HWND hwnd)
@@ -240,9 +304,8 @@ void hookGuangbo(HWND hwnd)
 	OldWndProc = (WNDPROC)GetWindowLong(hwnd, -4);//保存旧地址
 	SetWindowLong(hwnd, -4, (DWORD)NewWindowProc);
 	SendMessage(hwnd, WM_USER + 1, TRUE, FALSE);
-	SetWindowLong (hwnd,-16,GetWindowLong(hwnd, -16)| WS_OVERLAPPEDWINDOW| WS_SYSMENU);
-
-
+	SetWindowLong(hwnd, -16, GetWindowLong(hwnd, -16) | WS_OVERLAPPEDWINDOW | WS_SYSMENU);
+	return;
 }
 //新的窗口回调函数
 LRESULT CALLBACK NewWindowProc(HWND hwnd,      // handle to window
@@ -253,13 +316,19 @@ LRESULT CALLBACK NewWindowProc(HWND hwnd,      // handle to window
 {
 	switch (uMsg)
 	{
-		case WM_USER+1:
-			//日志记录
-			break;
-		default:
-			break;
+	case WM_USER + 1:
+		//日志记录
+		break;
+	case WM_DESTROY:
+		if (MessageBox(hwnd, L"您真的要关闭广播窗口吗？\n您可以在菜单中恢复此窗口", L"JiyuController提示", MB_OKCANCEL | MB_ICONWARNING) == IDOK)
+		{
+			ShowWindow(hwnd, 0);
+		}
+
+	default:
+		break;
 	}
-		
+
 	return CallWindowProc((WNDPROC)OldWndProc, hwnd, uMsg, wParam, lParam);
 }
 
