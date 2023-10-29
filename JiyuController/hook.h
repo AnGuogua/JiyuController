@@ -125,7 +125,6 @@ typedef LRESULT(WINAPI* fnSendMessageW)(__in HWND hWnd, __in UINT Msg, __in WPAR
 typedef BOOL(WINAPI* fnTerminateProcess)(__in HANDLE hProcess, __in UINT uExitCode);
 typedef HRESULT(WINAPI* fnFilterConnectCommunicationPort)(LPCWSTR lpPortName, DWORD dwOptions, LPCVOID lpContext, WORD wSizeOfContext, LPSECURITY_ATTRIBUTES lpSecurityAttributes, HANDLE* hPort);
 //声明Hook函数，定义在hook.cpp中
-BOOL WINAPI hkExitWindowsEx(__in UINT uFlags, __in DWORD dwReason);
 BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx, int cy, UINT uFlags);
 BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint);
 BOOL WINAPI hkSetForegroundWindow(HWND hWnd);
@@ -200,9 +199,18 @@ LONG WINAPI hkSetWindowLongW(
 BOOL WINAPI hkShowWindow(
 	_In_ HWND hWnd,
 	_In_ int nCmdShow);
-HINSTANCE WINAPI hkShellExecuteW(__in_opt HWND hwnd, __in_opt LPCWSTR lpOperation, __in LPCWSTR lpFile, __in_opt LPCWSTR lpParameters,
-	__in_opt LPCWSTR lpDirectory, __in INT nShowCmd);
-BOOL WINAPI hkShellExecuteExW(__inout SHELLEXECUTEINFOW* pExecInfo);
+BOOL WINAPI hkExitWindowsEx(
+	__in UINT uFlags,
+	__in DWORD dwReason);
+HINSTANCE WINAPI hkShellExecuteW(
+	__in_opt HWND hwnd,
+	__in_opt LPCWSTR lpOperation,
+	__in LPCWSTR lpFile,
+	__in_opt LPCWSTR lpParameters,
+	__in_opt LPCWSTR lpDirectory,
+	__in INT nShowCmd);
+BOOL WINAPI hkShellExecuteExW(
+	__inout SHELLEXECUTEINFOW* pExecInfo);
 BOOL WINAPI hkCreateProcessW(
 	__in_opt    LPCWSTR lpApplicationName,
 	__inout_opt LPWSTR lpCommandLine,
@@ -228,16 +236,29 @@ BOOL WINAPI hkCreateProcessA(
 	__out       LPPROCESS_INFORMATION lpProcessInformation
 );
 HRESULT WINAPI hkDwmEnableComposition(UINT uCompositionAction);
-UINT WINAPI hkWinExec(__in LPCSTR lpCmdLine, __in UINT uCmdShow);
+UINT WINAPI hkWinExec(
+	__in LPCSTR lpCmdLine, 
+	__in UINT uCmdShow);
 LRESULT WINAPI hkCallNextHookEx(HHOOK hhk, int nCode, WPARAM wParam, LPARAM lParam);
 HWND WINAPI hkGetDesktopWindow(VOID);
-HDC WINAPI hkGetWindowDC(__in_opt HWND hWnd);
+HDC WINAPI hkGetWindowDC(
+	__in_opt HWND hWnd);
 BOOL __cdecl hkEncodeToJPEGBuffer(int a1, int a2, int a3, int a4, int a5, DWORD* a6, int a7, int a8, int a9);
 HWND WINAPI hkGetForegroundWindow(VOID);
-HDC WINAPI hkCreateDCW(__in_opt LPCWSTR pwszDriver, __in_opt LPCWSTR pwszDevice, __in_opt LPCWSTR pszPort, __in_opt CONST DEVMODEW* pdm);
+HDC WINAPI hkCreateDCW(
+	__in_opt LPCWSTR pwszDriver, 
+	__in_opt LPCWSTR pwszDevice,
+	__in_opt LPCWSTR pszPort,
+	__in_opt CONST DEVMODEW* pdm);
 BOOL WINAPI hkEnableMenuItem(HMENU hMenu, UINT  uIDEnableItem, UINT  uEnable);
-DWORD WINAPI hkSetClassLongA(__in HWND hWnd, __in int nIndex, __in LONG dwNewLong);
-DWORD WINAPI hkSetClassLongW(__in HWND hWnd, __in int nIndex, __in LONG dwNewLong);
+DWORD WINAPI hkSetClassLongA(
+	__in HWND hWnd, 
+	__in int nIndex,
+	__in LONG dwNewLong);
+DWORD WINAPI hkSetClassLongW(
+	__in HWND hWnd,
+	__in int nIndex,
+	__in LONG dwNewLong);
 BOOL WINAPI hkUnhookWindowsHookEx(HHOOK hhk);
 BOOL WINAPI hkPostMessageW(__in_opt HWND hWnd, __in UINT Msg, __in WPARAM wParam, __in LPARAM lParam);
 LRESULT WINAPI hkSendMessageW(__in HWND hWnd, __in UINT Msg, __in WPARAM wParam, __in LPARAM lParam);

@@ -2,7 +2,12 @@
 #include "mhook-lib/mhook.h"
 #include"hook.h"
 #include<Windows.h>
-bool hk[40];
+#include <TlHelp32.h>
+bool hk[40] = { 0 };
+//极域的Pid
+DWORD Jiyupid = -1;
+bool JiyuRunning = false;
+//
 //声明指针变量
 fnSetWindowPos pSetWindowPos = NULL;
 fnMoveWindow pMoveWindow = NULL;
@@ -93,7 +98,7 @@ void InstallHook()
 	if (hFltLib) pFilterConnectCommunicationPort = (fnFilterConnectCommunicationPort)GetProcAddress(hFltLib, "FilterConnectCommunicationPort");
 	//开始hook
 	//用法：Mhook_SetHook(原始函数，hook的函数)
-	hk[1] = Mhook_SetHook((PVOID*)pSetWindowPos,hkSetWindowPos);
+	hk[1] = Mhook_SetHook((PVOID*)pSetWindowPos, hkSetWindowPos);
 	hk[2] = Mhook_SetHook((PVOID*)pMoveWindow, hkMoveWindow);
 	hk[3] = Mhook_SetHook((PVOID*)pSetForegroundWindow, hkSetForegroundWindow);
 	hk[4] = Mhook_SetHook((PVOID*)pBringWindowToTop, hkBringWindowToTop);
@@ -114,12 +119,12 @@ void InstallHook()
 	hk[18] = Mhook_SetHook((PVOID*)pShellExecuteExW, hkShellExecuteExW);
 	hk[19] = Mhook_SetHook((PVOID*)pCreateProcessA, hkCreateProcessA);
 	hk[20] = Mhook_SetHook((PVOID*)pCreateProcessW, hkCreateProcessW);
-	if(pDwmEnableComposition!=NULL)hk[21] = Mhook_SetHook((PVOID*)pDwmEnableComposition, hkDwmEnableComposition);
+	if (pDwmEnableComposition != NULL)hk[21] = Mhook_SetHook((PVOID*)pDwmEnableComposition, hkDwmEnableComposition);
 	hk[22] = Mhook_SetHook((PVOID*)pWinExec, hkWinExec);
 	hk[23] = Mhook_SetHook((PVOID*)pCallNextHookEx, hkCallNextHookEx);
 	hk[24] = Mhook_SetHook((PVOID*)pGetDesktopWindow, hkGetDesktopWindow);
 	hk[25] = Mhook_SetHook((PVOID*)pGetWindowDC, hkGetWindowDC);
-	if(pEncodeToJPEGBuffer!=NULL)hk[26] = Mhook_SetHook((PVOID*)pEncodeToJPEGBuffer, hkEncodeToJPEGBuffer);
+	if (pEncodeToJPEGBuffer != NULL)hk[26] = Mhook_SetHook((PVOID*)pEncodeToJPEGBuffer, hkEncodeToJPEGBuffer);
 	hk[27] = Mhook_SetHook((PVOID*)pGetForegroundWindow, hkGetForegroundWindow);
 	hk[28] = Mhook_SetHook((PVOID*)pCreateDCW, hkCreateDCW);
 	hk[29] = Mhook_SetHook((PVOID*)pEnableMenuItem, hkEnableMenuItem);
@@ -129,7 +134,7 @@ void InstallHook()
 	hk[33] = Mhook_SetHook((PVOID*)pPostMessageW, hkPostMessageW);
 	hk[34] = Mhook_SetHook((PVOID*)pSendMessageW, hkSendMessageW);
 	hk[35] = Mhook_SetHook((PVOID*)pTerminateProcess, hkTerminateProcess);
-	if(pFilterConnectCommunicationPort!=NULL)hk[36] = Mhook_SetHook((PVOID*)pFilterConnectCommunicationPort, hkFilterConnectCommunicationPort);
+	if (pFilterConnectCommunicationPort != NULL)hk[36] = Mhook_SetHook((PVOID*)pFilterConnectCommunicationPort, hkFilterConnectCommunicationPort);
 	//钩子已安装完毕
 	return;
 }
@@ -172,4 +177,86 @@ void UninstallHook()
 	if (hk[35]) Mhook_Unhook((PVOID*)pTerminateProcess);
 	if (hk[36]) Mhook_Unhook((PVOID*)pFilterConnectCommunicationPort);
 	return;
+}
+int GetJiyuID()
+{
+	HANDLE hSnapshot;
+	PROCESSENTRY32 lppe;
+	BOOL Found;
+	hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	lppe.dwSize = sizeof(PROCESSENTRY32);
+	Found = Process32First(hSnapshot, &lppe);
+	const WCHAR* mProce = L"StudentMain.exe";
+	int pid = -1;
+	while (Found)
+	{
+		if (mProce == lppe.szExeFile)//进程名比较  
+		{
+			Found = TRUE;
+			pid = lppe.th32ProcessID;
+			break;
+		}
+		Found = Process32Next(hSnapshot, &lppe);//得到下一个进程  
+	}
+	CloseHandle(hSnapshot);
+	if (pid == -1)
+	{
+		JiyuRunning = false;
+	}
+	Jiyupid = pid;
+	return pid;
+}
+void JiyuMonitor()
+{
+	HANDLE Jiyu = OpenProcess(PROCESS_ALL_ACCESS, FALSE, Jiyupid);
+	WaitForSingleObject(Jiyu, INFINITE);
+	Jiyupid = -1;
+	JiyuRunning = false;
+}
+void JiyuStatus()//极域状态监测
+{
+	 = FindWindowW(L"屏幕广播", NULL)
+	if()
+
+}
+void hookGuangbo(HWND hwnd)
+{
+
+}
+BOOL WINAPI hkSetWindowPos(HWND hWnd, HWND hWndInsertAfter, int x, int y, int cx, int cy, UINT uFlags)
+{
+	if (GetCurrentProcessId() == Jiyupid)//如果调用此函数的是极域
+	{
+		SetLastError(5);
+		return false;
+	}
+	else
+	{
+		return pSetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags);
+	}
+}
+
+BOOL WINAPI hkMoveWindow(HWND hWnd, int x, int y, int cx, int cy, BOOL bRepaint)
+{
+	if (GetCurrentProcessId() == Jiyupid)//如果调用此函数的是极域
+	{
+		SetLastError(5);
+		return false;
+	}
+	else
+	{
+		return pMoveWindow(hWnd, x, y, cx, cy, bRepaint);
+	}
+}
+BOOL WINAPI hkSetForegroundWindow(HWND hWnd)
+{
+	if (GetCurrentProcessId() == Jiyupid)//如果调用此函数的是极域
+	{
+		SetLastError(5);
+		return false;
+	}
+	else
+	{
+		return pSetForegroundWindow(hWnd);
+	}
 }
